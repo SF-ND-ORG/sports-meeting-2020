@@ -1,0 +1,322 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <!--2020-云南师大附中学联网络部 版权所有-->
+    <!--Code by. 范滇东-->
+    <!--小苏~-->
+	<title>SplitMusic</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/axios@0.21.0/dist/axios.min.js"></script>
+	<link href="https://fonts.googleapis.com/css?family=Material+Icons" rel="stylesheet">
+	<link href="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.css" rel="stylesheet">
+	<script src="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.js"></script>
+	<script src="https://cdn.bootcdn.net/ajax/libs/vue-clipboard2/0.0.8/vue-clipboard.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/vue-router@3.4.9/dist/vue-router.min.js"></script>
+	<!--引入思源字体-->
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Serif+SC:100,300,400,500,700,900">
+	
+	<style>	
+	#app{
+		font-family: Noto Serif SC;
+		font-style:  normal;
+		font-weight: 500;
+	}
+	</style>
+</head>
+
+<body>
+<div id="app">
+<v-app>
+	
+	<v-app-bar class="cyan lighten-4 grey--text text--darken-3" short max-height="56px">
+		<v-toolbar-title>SplitMusic</v-toolbar-title>
+		<v-spacer></v-spacer>
+		<v-toolbar-title class="text--disabled">体育节2020点歌后台</v-toolbar-title>
+	</v-app-bar>
+	
+	<v-container>
+		<v-row justify="center">
+			<v-col lg=4 md=4 sm=5 xs=11>
+				<v-card>
+					<v-card-title class="blue-grey--text text--darken-2">{{hitokoto}}</v-card-title>
+				</v-card>
+
+				<br>
+				<v-card justify="center" v-if="music.name">
+					<v-img :src="music.img"></v-img>
+					<v-card-title>{{music.name}}</v-card-title>
+					<v-card-subtitle>
+						mid：{{music.mid}} <br>
+						作者：{{music.artist.join(" | ")}} <br>
+						专辑：{{music.album.name}} <br>
+						时间：{{FormatDate(music.submit_time)}} <br>
+						Q&ensp;Q：{{music.qq}} <br>
+					</v-card-subtitle>
+					<div style="text-align: center;">
+						<audio ref="player" style="width:95%;outline:medium;" :src="music.src" controls="controls"></audio>
+					</div>
+					<v-card-subtitle>{{nowlrc}}</v-card-subtitle>
+
+					<v-expansion-panels>
+						<v-expansion-panel >
+							<v-expansion-panel-header>
+								完整歌词
+								<template v-slot:actions>
+									<v-icon color="primary">expand_more</v-icon>
+								</template>
+							</v-expansion-panel-header>
+		
+							<v-expansion-panel-content>
+								<v-card-subtitle v-html='music.lrc'></v-card-subtitle>
+							</v-expansion-panel-content>
+						</v-expansion-panel>
+					</v-expansion-panels>
+					
+				</v-card>
+			</v-col>
+
+			<v-col lg=6 md=6 sm=7 xs=11>
+				<v-row>
+					<v-col cols=3 class="pa-1">
+						<v-alert text color="primary">待审：{{statis.waiting}}</v-alert>
+					</v-col>
+					<v-col cols=3 class="pa-1">
+						<v-alert text color="success">待播：{{statis.pool}}</v-alert>
+					</v-col>
+					<v-col cols=3 class="pa-1">
+						<v-alert text color="error">总计：{{statis.total}}</v-alert>
+					</v-col>
+				</v-row>
+
+				<v-row>
+					<v-switch class="mx-2 mt-0" v-model="option" v-for="i in statust" :key="i.status" 
+						:label="i.text" :value="i.status" :color="i.color">
+					</v-switch>
+					<v-btn outlined class="mx-2" @click="QueryList(false)" color="primary">刷新</v-btn>
+				</v-row>
+				
+				<v-list two-line shaped>
+					<v-subheader>歌曲列表</v-subheader>
+					<v-list-item-group>
+						<v-list-item v-for="i in musiclist" :key="i.id" v-if="option.indexOf(i.status)!=-1" @click="PlayMusic(i)" :color="statust[i.status].color">
+							<v-list-item-avatar>
+								<v-chip outlined :color="statust[i.status].color">{{i.id}}</v-chip>
+							</v-list-item-avatar>
+
+							<v-list-item-content>
+								<v-list-item-title v-text="i.data.name"></v-list-item-title>
+								<v-list-item-subtitle v-text="FormatDate(i.submit_time)+' | '+FormatDate(i.judge_time)"></v-list-item-subtitle>
+							</v-list-item-content>
+
+							<v-list-item-action>
+								<v-menu open-on-hover offset-y>
+									<template v-slot:activator="{ on, attrs }">
+										<v-btn icon :color="statust[i.status].color" v-bind="attrs" v-on="on" @click.stop="">
+											<v-icon :color="statust[i.status].color">more_vert</v-icon>
+										</v-btn>
+									</template>
+							  
+									<v-list dense>
+										<v-subheader>{{i.id}}</v-subheader>
+										<v-list-item v-for="ii in statust" :key="ii.status" :color="ii.color" @click="JudgeMusic(i,ii.status)">
+											<v-list-item-title :class="ii.color+'--text'">{{ii.text}}</v-list-item-title>
+										</v-list-item>
+									</v-list>
+								</v-menu>
+							</v-list-item-action>
+						</v-list-item>
+					</v-list-item-group>
+					<v-btn block outlined @click="QueryList()" color="primary" v-if="!end">加载更多</v-btn>
+				</v-list>
+			</v-col>
+		</v-row>
+		
+		<!--
+		<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+		<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>	
+		-->
+		
+	</v-container>
+
+	<v-footer color="cyan lighten-4" padless>
+		<v-col class="text-center">
+			<strong>2020-云南师大附中学联宣传网络部 版权所有</strong>
+		</v-col>
+	</v-footer>
+</v-app>
+</div>
+
+<script>
+
+	router = new VueRouter({
+		routes: [
+    		{ path: '/:path*'}
+  		]
+	})
+
+	vm = new Vue({
+		vuetify: new Vuetify(),
+		el:"#app",
+		router,
+		data:{
+			music:{},
+			musictmp:{},
+			input:"",
+			nowlrc:"",
+			nowlrcs:[],
+			limit:20,
+			end:false,
+			musiclist:[],
+			option:[1],
+			hitokoto:"",
+			baseurl:"https://1426531544223608.cn-hangzhou.fc.aliyuncs.com/2016-08-15/proxy/music/",
+			baseburl:"http://114.55.93.225:5000/",
+			apiurl:"http://114.55.93.225:5705/music/",
+			statis:{
+				waiting:0,
+				pool:0,
+				total:0
+			},
+			statust:{
+				1:{color:"info",text:"等待审核",status:1},
+				2:{color:"success",text:"审核通过",status:2},
+				3:{color:"error",text:"审核失败",status:3},
+				4:{color:"warning",text:"播放完成",status:4},
+				5:{color:"purple",text:"加急播放",status:5}
+			}
+		},
+		methods:{
+			PlayMusic : function(mid){ //播放音乐
+				if(typeof(mid)=='object')
+				{
+					this.musictmp=mid;
+					mid=mid.mid;
+				}
+				if(mid[0]=="C")url=this.baseurl+"cloudmusic/";
+				if(mid[0]=="Q")url=this.baseurl+"qqmusic/";
+				if(mid[0]=="B")url=this.baseburl+"bilimusic/";
+				if(mid[0]=="S")url="http://cloud.flwfdd.xyz/api/music_get/";
+				axios.get(url,{
+				params:{
+					mid: mid,
+					type:"music",
+					}
+				})
+				.then(function(response){
+					_this.music=response.data;
+					_this.music.submit_time=_this.musictmp.submit_time;
+					_this.music.qq=_this.musictmp.qq;
+					_this.music.status=_this.musictmp.status;
+					
+					l=response.data.lrc.split("\n");
+					for(i=0;i<l.length;i++)
+					{
+						if(l[i]=="")continue;
+						time_str=l[i].slice(1,l[i].search("]"));
+						t=time_str.split(":")[0]*60+time_str.split(":")[1]*1.0;
+						_this.nowlrcs.push([t,l[i].slice(l[i].search("]")+1)]);
+					}
+					_this.music.lrc=_this.music.lrc.replaceAll("\n","<br>")
+				})
+			},
+			UpLrc : function(){ //歌词更新
+				if("player" in this.$refs)
+				{
+					nowt=this.$refs["player"].currentTime;
+					for(i=this.nowlrcs.length-1;i>=0;i--)
+					{
+						if(nowt>=this.nowlrcs[i][0])
+						{
+							this.nowlrc=this.nowlrcs[i][1];
+							break;
+						}
+					}
+				}
+				
+			},
+			QueryList: function(up=true){ //请求列表
+				if(up==false)this.musiclist=[],this.end=false;
+				axios.get(this.apiurl,{
+					params:{
+						cmd:"query",
+						data:{
+							type:"split",
+							limit:this.limit,
+							offset:this.musiclist.length
+						}
+					}
+				})
+				.then(function(res){
+					var data=res.data.data;
+					for(i in data)data[i].data=JSON.parse(data[i].data);
+					_this.musiclist=_this.musiclist.concat(data);
+					if(res.data.len<_this.limit)_this.end=true;
+				})
+			},
+			JudgeMusic: function(m,status){
+				axios.get(this.apiurl,{
+					params:{
+						cmd:"judge",
+						data:{
+							id:m.id,
+							qq:m.qq,
+							name:m.data.name,
+							status:status
+						}
+					}
+				})
+				m.status=status;
+			},
+			FormatDate: function(t) {
+				if(!t)return "No Time";
+				dt=new Date().getTime()/1000-t;
+				//console.log(this.music.name,new Date().getTime(),this.data.play_time);
+				if(dt<60)return Math.round(dt)+"秒前";
+				if(dt<60*60)return Math.round(dt/60)+"分钟前";
+				if(dt<12*60*60)return Math.round(dt/60/60)+"小时前"
+
+				var now=new Date(t*1000);
+				var year = now.getFullYear();
+				var month = now.getMonth() + 1;
+				var date = now.getDate();
+				var hour = now.getHours();
+				var minute = now.getMinutes();
+				var second = now.getSeconds();
+				return year + "-" + month + "-" + date + " " + hour + ":" + minute + ":" + second;
+			},
+			UpHitokoto: function(){
+				axios.get("https://v1.hitokoto.cn/")
+				.then(function(res){
+					_this.hitokoto=res.data.hitokoto+"  ——"+res.data.from;
+				})
+			},
+			QueryStatis: function(){ //请求统计信息
+				axios.get(this.apiurl,{
+					params:{
+						cmd:"query",
+						data:{
+							type:"statis"
+						}
+					}
+				})
+				.then(function(res){
+					_this.statis=res.data.data;
+				})
+			},
+		},
+		created : function(){
+			_this=this;
+			setInterval(this.UpLrc,100);
+			this.QueryList();
+			this.UpHitokoto();
+			setInterval(this.UpHitokoto,10*1000);
+			this.QueryStatis();
+			setInterval(this.QueryStatis,30*1000);
+		}
+	})
+</script>
+
+</body>
+</html>
