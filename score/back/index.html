@@ -1,0 +1,133 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+	<!--2020-云南师大附中学联网络部 版权所有-->
+	<!--Code by. 范滇东-->
+	<!--想小苏~-->
+	<title>2020体育节后台</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/axios@0.21.0/dist/axios.min.js"></script>
+	<link href="https://fonts.googleapis.com/css?family=Material+Icons" rel="stylesheet">
+	<link href="https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css" rel="stylesheet">
+	<link href="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.css" rel="stylesheet">
+	<script src="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/vue-clipboard2@0.3.1/dist/vue-clipboard.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/vue-router@3.4.9/dist/vue-router.min.js"></script>
+	<!--引入思源字体-->
+	<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+	<style>
+		.translist-move {
+			transition: all 0.3s;
+		}
+
+		.translist-enter-active,
+		.translist-leave-active {
+			transition: all 0.3s;
+		}
+
+		.translist-enter,
+		.translist-leave-to
+
+		/* .list-leave-active for below version 2.1.8 */
+			{
+			opacity: 0;
+			transform: translateY(30px);
+		}
+	</style>
+</head>
+
+<body>
+	<div id="app">
+		<v-app>
+			<v-container>
+				<v-card>
+					<v-card-text>
+						<v-row v-for="(i,ind) in list" :key="ind">
+							<v-col>
+								<v-text-field label="排名" v-model="i.rank"></v-text-field>
+							</v-col>
+							<v-col>
+								<v-text-field label="年级" v-model="i.grades"></v-text-field>
+							</v-col>
+							<v-col>
+								<v-text-field label="班级" v-model="i.class"></v-text-field>
+							</v-col>
+							<v-col>
+								<v-text-field label="姓名" v-model="i.name"></v-text-field>
+							</v-col>
+							<v-col>
+								<v-text-field label="项目" v-model="i.projects"></v-text-field>
+							</v-col>
+							<v-col>
+								<v-text-field label="成绩" v-model="i.achievements"></v-text-field>
+							</v-col>
+							<v-btn color="error" class="ma-5" @click="list.splice(ind,1)">删除</v-btn>
+						</v-row>
+						<v-row>
+							<v-btn color="info" @click="list.push(JSON.parse(JSON.stringify(demo)))" class="ml-3">新建
+							</v-btn>
+							<v-spacer></v-spacer>
+							<v-btn color="error" @click="onupdate" class="mr-3">提交</v-btn>
+						</v-row>
+					</v-card-text>
+				</v-card>
+			</v-container>
+		</v-app>
+	</div>
+
+
+	<script>
+		VueClipboard.config.autoSetContainer = true
+		Vue.prototype.$axios = axios    //全局注册，使用方法为:this.$axioss
+		const routes = []
+		const router = new VueRouter({
+			routes // (缩写) 相当于 routes: routes
+		})
+
+		var vm = new Vue({ //主应用
+			vuetify: new Vuetify(),
+			el: "#app",
+			router,
+			data: {
+				demo: {
+					grades: "",
+					class: "",
+					name: "",
+					achievements: "",
+					projects: "",
+					rank: "",
+				},
+				list: []
+			},
+			methods: {
+				onupdate() {
+					axios.get('http://114.55.93.225:5706/upgrades/', {
+						params: {
+							data: JSON.stringify(this.list)
+						},
+					}).then((response) => {
+						alert('已经上传，返回信息：'+response.data, 'title');
+						if(response.data=="update successfully"){
+						    this.list.splice(0,this.list.length);
+						}
+					})
+				}
+			},
+			watch: {
+
+			},
+			created: function () {
+
+			}
+		});
+
+
+	</script>
+
+</body>
+
+</html>
