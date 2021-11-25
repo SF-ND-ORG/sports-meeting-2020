@@ -5,6 +5,7 @@ import base64
 import json
 import time
 import pymysql as mdb
+import csv
 
 app = Flask(__name__)
 CORS(app,resources=r"/*")
@@ -80,7 +81,8 @@ def projects():
 @app.route("/upgrades/",methods=['GET','POST'])
 def up_date():
     data=request.values.get('data')
-    dic=json.loads(data)
+    #dic=json.loads(data)
+    dic=csv.reader(data)
     print(dic)
     for i in dic:
         try:
